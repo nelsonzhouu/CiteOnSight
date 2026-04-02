@@ -4,9 +4,19 @@
   "version": "0.1.0",
   "description": "Generate citations from any webpage instantly",
 
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+
   "action": {
     "default_popup": "popup.html",
-    "default_title": "CiteOnSight"
+    "default_title": "CiteOnSight",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png"
+    }
   },
 
   "permissions": [

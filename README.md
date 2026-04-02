@@ -8,9 +8,9 @@ Academic researchers, students, and writers spend significant time manually buil
 
 ## Key Features
 
-- Auto-extract metadata from any webpage (title, author, date, publisher)
+- Auto-detect and extract metadata from websites and journal articles
 - Generate citations in APA, MLA, and Chicago formats
-- Manual entry fallback for pages with missing metadata
+- Manual entry for books and pages with missing metadata
 - Save citations to organized project folders
 - User accounts with citation history
 - Copy-to-clipboard with one click
@@ -60,7 +60,7 @@ CiteOnSight/
 Each phase follows the same pattern: build the feature, manually verify it works, write tests for it, then commit. Testing is not deferred to the end — each phase ships with its own tests.
 
 ### Phase 1: Metadata Extraction
-Build the content script that runs inside the active browser tab and extracts structured metadata (title, author, date, URL, publisher) from the page's HTML and meta tags. Write unit tests for the extraction logic.
+Build the content script that runs inside the active browser tab and extracts structured metadata (title, author, date, URL, publisher) from the page's HTML and meta tags. Auto-detects two source types: **websites** (news articles, blogs, Wikipedia, general web pages) and **journal articles** (pages with DOIs and scholarly metadata). Books are not auto-detected — manual entry in Phase 3 is the right solution since most books are physical and lack a webpage to extract from. Write unit tests for the extraction logic.
 
 ### Phase 2: Citation Formatting
 Build the FastAPI backend with endpoints that accept metadata and return properly formatted citations in APA, MLA, and Chicago styles. Write unit tests for all three formatters.

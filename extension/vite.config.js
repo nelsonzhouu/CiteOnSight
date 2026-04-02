@@ -6,17 +6,18 @@ export default defineConfig({
   plugins: [react()],
 
   build: {
-    // Chrome extensions require separate JS bundles for each entry point.
-    // A normal Vite app produces one bundle; rollupOptions lets us define multiple.
     rollupOptions: {
+      // Chrome extensions need a separate JS bundle for each script context.
+      // All three are JS entry points — popup.html lives in public/ and loads
+      // popup.js at runtime, so it does not need to be an entry point here.
       input: {
-        popup: resolve(__dirname, "src/popup/index.html"),
+        popup: resolve(__dirname, "src/popup/index.jsx"),
         content: resolve(__dirname, "src/content/index.js"),
         background: resolve(__dirname, "src/background/index.js"),
       },
       output: {
-        // Disable code splitting — Chrome extensions load scripts independently,
-        // so shared chunks would fail to load without a module bundler on the other end.
+        // Disable code splitting — Chrome loads extension scripts independently,
+        // so shared chunks would 404 without a module bundler on the other end.
         manualChunks: undefined,
         entryFileNames: "[name].js",
         chunkFileNames: "[name].js",
@@ -26,8 +27,8 @@ export default defineConfig({
 
     outDir: "dist",
 
-    // Emit source maps for easier debugging during development.
-    // Set to false before submitting to the Chrome Web Store.
+    // Source maps help with debugging in Chrome DevTools.
+    // Disable before publishing to the Chrome Web Store.
     sourcemap: true,
   },
 });

@@ -155,6 +155,9 @@ env/
 htmlcov/
 coverage.xml
 
+# Extension build output — load extension/dist/ in Chrome, not the source folder
+extension/dist/
+
 # OS
 .DS_Store
 Thumbs.db

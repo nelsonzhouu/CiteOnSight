@@ -2,14 +2,24 @@
 
 CiteOnSight is a Chrome extension that instantly generates formatted citations from any webpage. Instead of manually copying URLs, publication dates, and author names into a citation generator, CiteOnSight extracts metadata from the page you're already on and formats it for you in one click.
 
+## Citation Formats
+
+| Format | Version | Common Use |
+|--------|---------|------------|
+| APA | 7th Edition | Social sciences, psychology, education |
+| MLA | 9th Edition | Humanities, literature, languages |
+| Chicago | 17th Edition (Notes and Bibliography) | History, arts, humanities |
+| IEEE | Current standard | Engineering, computer science |
+| Harvard | Standard author-date (Cite Them Right, 12th ed.) | Sciences, UK universities |
+
 ## The Problem
 
-Academic researchers, students, and writers spend significant time manually building citations — finding the author, publication date, and site name, then formatting them correctly for APA, MLA, or Chicago style. CiteOnSight eliminates that friction by reading the page's metadata automatically and formatting the citation on demand.
+Academic researchers, students, and writers spend significant time manually building citations — finding the author, publication date, and site name, then formatting them correctly for APA, MLA, Chicago, IEEE, or Harvard style. CiteOnSight eliminates that friction by reading the page's metadata automatically and formatting the citation on demand.
 
 ## Key Features
 
 - Auto-detect and extract metadata from websites and journal articles
-- Generate citations in APA, MLA, and Chicago formats
+- Generate citations in APA, MLA, Chicago, IEEE, and Harvard formats
 - Manual entry for books and pages with missing metadata
 - Save citations to organized project folders
 - User accounts with citation history
@@ -63,7 +73,7 @@ Each phase follows the same pattern: build the feature, manually verify it works
 Build the content script that runs inside the active browser tab and extracts structured metadata (title, author, date, URL, publisher) from the page's HTML and meta tags. Auto-detects two source types: **websites** (news articles, blogs, Wikipedia, general web pages) and **journal articles** (pages with DOIs and scholarly metadata). Books are not auto-detected — manual entry in Phase 3 is the right solution since most books are physical and lack a webpage to extract from. Write unit tests for the extraction logic.
 
 ### Phase 2: Citation Formatting
-Build the FastAPI backend with endpoints that accept metadata and return properly formatted citations in APA, MLA, and Chicago styles. Write unit tests for all three formatters.
+Build the FastAPI backend with endpoints that accept metadata and return properly formatted citations in APA, MLA, Chicago, IEEE, and Harvard styles. Write unit tests for all five formatters.
 
 ### Phase 3: Extension UI
 Build the React popup interface — displays extracted metadata, lets users choose a citation format, shows the formatted result, and handles error/loading states. Write component tests for the UI.
@@ -99,14 +109,16 @@ This phase is not "write all the tests" — each phase already has tests. Phase 
 - [ ] APA format endpoint
 - [ ] MLA format endpoint
 - [ ] Chicago format endpoint
+- [ ] IEEE format endpoint
+- [ ] Harvard format endpoint
 - [ ] Input validation with Pydantic
 - [ ] Error handling for malformed input
-- [ ] Unit tests for all three formats
+- [ ] Unit tests for all five formats
 
 ### Phase 3: Extension UI
 - [ ] Popup shell with Tailwind styling
 - [ ] Display extracted metadata fields
-- [ ] Format selector (APA / MLA / Chicago)
+- [ ] Format selector (APA / MLA / Chicago / IEEE / Harvard)
 - [ ] Formatted citation display
 - [ ] Copy-to-clipboard button
 - [ ] Loading state while fetching citation

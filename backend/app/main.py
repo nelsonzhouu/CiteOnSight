@@ -1,18 +1,19 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import ConfigDict
 from pydantic_settings import BaseSettings
+from app.routers import citations
 
 
 class Settings(BaseSettings):
+    model_config = ConfigDict(env_file=".env")
+
     supabase_url: str = ""
     supabase_anon_key: str = ""
     supabase_service_key: str = ""
     # Populated at deploy time with the actual extension ID.
     # During local development, you can add http://localhost:* here as well.
     allowed_origins: list[str] = []
-
-    class Config:
-        env_file = ".env"
 
 
 settings = Settings()
@@ -29,6 +30,9 @@ app.add_middleware(
     allow_methods=["GET", "POST"],
     allow_headers=["Authorization", "Content-Type"],
 )
+
+
+app.include_router(citations.router)
 
 
 @app.get("/health")

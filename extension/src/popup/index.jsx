@@ -1,2 +1,6 @@
-// Phase 3: React popup UI will be built here
-document.getElementById("root").textContent = "CiteOnSight";
+import { createRoot } from "react-dom/client";
+import App from "./App.jsx";
+import "./index.css";
+
+const root = createRoot(document.getElementById("root"));
+root.render(<App />);

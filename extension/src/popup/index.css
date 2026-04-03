@@ -1,0 +1,9 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Reset browser default body styles so the popup background is clean */
+body {
+  margin: 0;
+  padding: 0;
+}

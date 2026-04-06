@@ -346,6 +346,26 @@ class TestChicagoWebsite:
         result = format_chicago_website(req)
         assert result.startswith('"Test Title."')
 
+    def test_access_date_appended_to_url(self):
+        req = make_request(
+            format="Chicago",
+            source_type="website",
+            url="https://example.com",
+            access_date="2026-04-03",
+        )
+        result = format_chicago_website(req)
+        assert "https://example.com (accessed April 3, 2026)." in result
+
+    def test_no_access_date_leaves_url_plain(self):
+        req = make_request(
+            format="Chicago",
+            source_type="website",
+            url="https://example.com",
+        )
+        result = format_chicago_website(req)
+        assert "accessed" not in result
+        assert "https://example.com." in result
+
     def test_three_authors(self):
         req = make_request(
             format="Chicago",
@@ -548,6 +568,35 @@ class TestHarvardWebsite:
         assert "None" not in result
         assert "January" not in result
 
+    def test_comma_after_year(self):
+        req = make_request(
+            format="Harvard",
+            source_type="website",
+            authors=["Jane Smith"],
+            date="2024",
+        )
+        result = format_harvard_website(req)
+        assert "Smith, J. (2024), " in result
+
+    def test_access_date_day_before_month(self):
+        req = make_request(
+            format="Harvard",
+            source_type="website",
+            url="https://example.com",
+            access_date="2026-04-03",
+        )
+        result = format_harvard_website(req)
+        assert "(Accessed: 3 April 2026)" in result
+
+    def test_no_access_date_omits_accessed(self):
+        req = make_request(
+            format="Harvard",
+            source_type="website",
+            url="https://example.com",
+        )
+        result = format_harvard_website(req)
+        assert "Accessed" not in result
+
 
 class TestHarvardJournal:
     def test_complete(self):
@@ -568,6 +617,16 @@ class TestHarvardJournal:
         assert "NeurIPS" in result
         assert "30(1)" in result
         assert "pp. 5998-6008" in result
+
+    def test_comma_after_year(self):
+        req = make_request(
+            format="Harvard",
+            source_type="journal_article",
+            authors=["Jane Smith"],
+            date="2024",
+        )
+        result = format_harvard_journal(req)
+        assert "Smith, J. (2024), " in result
 
     def test_no_author(self):
         req = make_request(format="Harvard", source_type="journal_article", date="2020")

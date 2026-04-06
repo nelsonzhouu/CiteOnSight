@@ -20,6 +20,7 @@ class CitationRequest(BaseModel):
     url: str | None = None
     publisher: str | None = None
     date: str | None = None
+    access_date: str | None = None
     # Journal-specific fields
     journal_name: str | None = None
     volume: str | None = None
@@ -36,7 +37,7 @@ class CitationRequest(BaseModel):
         return cleaned
 
     @field_validator(
-        "publisher", "journal_name", "volume", "issue", "pages", "doi", "url", "date",
+        "publisher", "journal_name", "volume", "issue", "pages", "doi", "url", "date", "access_date",
         mode="before",
     )
     @classmethod

@@ -68,6 +68,15 @@ function dateMla(dateStr) {
   return day ? `${day} ${m} ${year}` : `${m} ${year}`;
 }
 
+// Harvard accessed: "3 April 2026" (day before full month, no comma)
+function dateHarvardAccessed(dateStr) {
+  const { year, month, day } = parseDate(dateStr);
+  if (!year) return "";
+  if (!month) return year;
+  const m = MONTHS[month - 1];
+  return day ? `${day} ${m} ${year}` : `${m} ${year}`;
+}
+
 // Chicago/IEEE: "March 15, 2024"
 function dateChicago(dateStr) {
   const { year, month, day } = parseDate(dateStr);
@@ -153,7 +162,8 @@ function formatChicago(metadata) {
   }
 
   const pub = metadata.publisher !== "Unknown Publisher" ? ` ${metadata.publisher}.` : "";
-  return `${author}"${metadata.title}."${pub} ${dateChicago(metadata.date)}. ${metadata.url}.`.trim();
+  const accessed = metadata.accessDate ? ` (accessed ${dateChicago(metadata.accessDate)})` : "";
+  return `${author}"${metadata.title}."${pub} ${dateChicago(metadata.date)}. ${metadata.url}${accessed}.`.trim();
 }
 
 function formatIeee(metadata) {
@@ -196,12 +206,12 @@ function formatHarvard(metadata) {
     const vol = metadata.volume ? ` vol. ${metadata.volume},` : "";
     const issue = metadata.issue ? ` no. ${metadata.issue},` : "";
     const pages = metadata.pages ? ` pp. ${metadata.pages}.` : ".";
-    return `${author}(${dateYear(metadata.date)}) '${metadata.title}',${journal}${vol}${issue}${pages}`.trim();
+    return `${author}(${dateYear(metadata.date)}), '${metadata.title}',${journal}${vol}${issue}${pages}`.trim();
   }
 
   const pub = metadata.publisher !== "Unknown Publisher" ? ` ${metadata.publisher}.` : "";
-  const accessed = metadata.accessDate ? dateChicago(metadata.accessDate) : "";
-  return `${author}(${dateYear(metadata.date)}) *${metadata.title}*.${pub} Available at: ${metadata.url} (Accessed: ${accessed}).`.trim();
+  const accessed = metadata.accessDate ? ` (Accessed: ${dateHarvardAccessed(metadata.accessDate)})` : "";
+  return `${author}(${dateYear(metadata.date)}), '${metadata.title}',${pub} Available at: ${metadata.url}${accessed}.`.trim();
 }
 
 const FORMATTERS = {

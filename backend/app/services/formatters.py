@@ -395,8 +395,8 @@ def format_mla_journal(req: CitationRequest) -> str:
 def format_chicago_website(req: CitationRequest) -> str:
     """
     Chicago 17th edition website (bibliography format):
-      Last, First. "Title." Publisher. Month Day, Year. URL.
-    Publisher, date, and URL are separate elements (periods between them).
+      Last, First. "Title." Publisher. Month Day, Year. URL (accessed Month Day, Year).
+    Access date is appended in parentheses after the URL when available.
     """
     authors = _authors_chicago(req.authors)
     date = _date_chicago(req.date)
@@ -411,8 +411,14 @@ def format_chicago_website(req: CitationRequest) -> str:
         parts.append(f"{req.publisher}.")
     if date:
         parts.append(f"{date}.")
+
     if req.url:
-        parts.append(f"{req.url}.")
+        url_part = req.url
+        if req.access_date:
+            access = _date_chicago(req.access_date)
+            if access:
+                url_part += f" (accessed {access})"
+        parts.append(f"{url_part}.")
 
     return " ".join(parts)
 
@@ -534,8 +540,9 @@ def format_ieee_journal(req: CitationRequest) -> str:
 def format_harvard_website(req: CitationRequest) -> str:
     """
     Harvard (Cite Them Right) website:
-      Last, F. (Year) 'Title', Publisher, Day Month. Available at: URL.
-    Year is in the author-date block; day and month appear after the publisher.
+      Last, F. (Year), 'Title', Publisher, Day Month. Available at: URL (Accessed: Day Month Year).
+    Comma after year-block is Harvard convention separating author-date from title.
+    Access date uses day-before-month format: "3 April 2026".
     """
     authors = _authors_harvard(req.authors)
     d = _parse_date(req.date)
@@ -548,11 +555,7 @@ def format_harvard_website(req: CitationRequest) -> str:
     elif d["month"]:
         body_date = _MONTH_FULL[d["month"]]
 
-    if authors:
-        lead = f"{authors} {year_str}"
-    else:
-        lead = year_str
-
+    lead = f"{authors} {year_str}," if authors else f"{year_str},"
     parts = [lead, f"'{req.title}',"]
 
     location = []
@@ -565,7 +568,18 @@ def format_harvard_website(req: CitationRequest) -> str:
         parts.append(", ".join(location) + ".")
 
     if req.url:
-        parts.append(f"Available at: {req.url}.")
+        url_part = f"Available at: {req.url}"
+        if req.access_date:
+            ad = _parse_date(req.access_date)
+            if ad["year"]:
+                if ad["month"] and ad["day"]:
+                    accessed_str = f"{ad['day']} {_MONTH_FULL[ad['month']]} {ad['year']}"
+                elif ad["month"]:
+                    accessed_str = f"{_MONTH_FULL[ad['month']]} {ad['year']}"
+                else:
+                    accessed_str = str(ad["year"])
+                url_part += f" (Accessed: {accessed_str})"
+        parts.append(url_part + ".")
 
     return " ".join(parts)
 
@@ -573,18 +587,14 @@ def format_harvard_website(req: CitationRequest) -> str:
 def format_harvard_journal(req: CitationRequest) -> str:
     """
     Harvard (Cite Them Right) journal article:
-      Last, F. and Last, F. (Year) 'Title', Journal Name, Volume(Issue), pp. Pages.
-    Volume and issue are combined without 'vol.'/'no.' prefixes (Harvard convention).
+      Last, F. and Last, F. (Year), 'Title', Journal Name, Volume(Issue), pp. Pages.
+    Comma after year-block matches the website formatter convention.
     """
     authors = _authors_harvard(req.authors)
     d = _parse_date(req.date)
     year_str = f"({d['year']})" if d["year"] else "(n.d.)"
 
-    if authors:
-        lead = f"{authors} {year_str}"
-    else:
-        lead = year_str
-
+    lead = f"{authors} {year_str}," if authors else f"{year_str},"
     parts = [lead, f"'{req.title}',"]
 
     journal_parts = []

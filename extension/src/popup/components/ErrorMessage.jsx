@@ -17,9 +17,9 @@ export default function ErrorMessage({ errorType }) {
   const { title, body } = ERROR_CONTENT[errorType] ?? ERROR_CONTENT.unknown;
 
   return (
-    <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 text-center">
-      <p className="text-sm font-semibold text-gray-900 mb-1.5">{title}</p>
-      <p className="text-xs text-gray-500 leading-relaxed">{body}</p>
+    <div className="bg-white rounded-lg border border-[#E5E7EB] shadow-sm p-5 text-center">
+      <p className="text-sm font-semibold text-[#1A1A1A] mb-1.5">{title}</p>
+      <p className="text-[13px] text-[#6B7280] leading-relaxed">{body}</p>
     </div>
   );
 }

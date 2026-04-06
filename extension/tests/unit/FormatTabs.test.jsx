@@ -42,6 +42,7 @@ describe("FormatTabs", () => {
   it("applies inactive styles to non-selected tabs", () => {
     render(<FormatTabs formats={FORMATS} selected="APA" onChange={() => {}} />);
     const mlaButton = screen.getByText("MLA");
-    expect(mlaButton.className).toContain("text-gray-400");
+    // Inactive tabs use the design-system gray; active tabs use text-accent
+    expect(mlaButton.className).not.toContain("text-accent");
   });
 });

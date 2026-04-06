@@ -1,15 +1,15 @@
 export default function FormatTabs({ formats, selected, onChange }) {
   return (
-    <div className="flex border-b border-gray-100">
+    <div className="flex border-b border-[#E5E7EB]">
       {formats.map((format) => (
         <button
           key={format}
           onClick={() => onChange(format)}
           className={[
-            "flex-1 text-xs py-2.5 font-medium transition-colors focus:outline-none",
+            "flex-1 text-sm py-3 transition-colors focus:outline-none",
             selected === format
-              ? "text-accent border-b-2 border-accent -mb-px"
-              : "text-gray-400 hover:text-gray-600",
+              ? "font-semibold text-[#1A1A1A] border-b-2 border-[#1A1A1A] -mb-px"
+              : "font-medium text-[#6B7280] hover:text-[#374151]",
           ].join(" ")}
         >
           {format}

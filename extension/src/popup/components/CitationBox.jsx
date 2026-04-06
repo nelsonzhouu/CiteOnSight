@@ -17,26 +17,26 @@ export default function CitationBox({ citation, isLoading }) {
 
   if (isLoading || !citation) {
     return (
-      <div className="flex items-center justify-center p-5 min-h-[72px]">
-        <div className="w-4 h-4 border-2 border-gray-200 border-t-accent rounded-full animate-spin" />
+      <div className="flex items-center justify-center py-6 min-h-[80px]">
+        <div className="w-4 h-4 border-2 border-[#E5E7EB] border-t-[#1A1A1A] rounded-full animate-spin" />
       </div>
     );
   }
 
   return (
     <div className="p-4">
-      {/* select-all makes the citation text selectable in one click as a fallback to Copy */}
-      <p className="text-xs text-gray-700 leading-relaxed mb-3 select-all">
+      {/* select-all makes the citation selectable in one click as a fallback to Copy */}
+      <p className="text-[13px] text-[#374151] leading-[1.6] mb-4 select-all">
         {citation}
       </p>
       <div className="flex justify-end">
         <button
           onClick={handleCopy}
           className={[
-            "text-xs font-medium px-4 py-1.5 rounded-full transition-colors",
+            "text-sm font-semibold px-5 py-1.5 rounded-full transition-colors",
             copied
-              ? "bg-accent text-white"
-              : "bg-gray-900 text-white hover:bg-gray-700",
+              ? "bg-[#374151] text-white"
+              : "bg-[#1A1A1A] text-white hover:bg-[#374151]",
           ].join(" ")}
         >
           {copied ? "Copied!" : "Copy"}

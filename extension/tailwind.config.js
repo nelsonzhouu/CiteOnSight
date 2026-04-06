@@ -4,14 +4,14 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Teal-green accent used for badges, active tab indicator, copy confirmation
+        // Teal-green accent: active tabs, badges, copy confirmation
         accent: {
-          DEFAULT: "#2A9D8F",
-          light: "#E8F5F3",
-          dark: "#1F7A6F",
+          DEFAULT: "#10B981",
+          light: "#D1FAE5",
+          dark: "#059669",
         },
-        // Warm off-white used as the popup background
-        surface: "#F7F6F3",
+        // Warm creamy off-white for the popup background
+        surface: "#F9F7F4",
       },
       fontFamily: {
         // System font stack — matches the clean sans-serif look in the reference

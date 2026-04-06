@@ -41,15 +41,15 @@ export default function App() {
 
   return (
     // Chrome popup width is driven by content — fix it here so layout is predictable
-    <div className="w-[380px] bg-surface font-sans min-h-[160px]">
-      <header className="flex items-center gap-2 px-4 py-3 bg-white border-b border-gray-100">
-        <img src="icons/icon48.png" alt="" className="w-5 h-5" />
-        <span className="text-sm font-semibold text-gray-900 tracking-tight">
+    <div className="w-[380px] bg-surface font-sans">
+      <header className="flex items-center gap-2.5 px-4 py-3.5 bg-white border-b border-[#E5E7EB]">
+        <img src="icons/icon48.png" alt="" className="w-5 h-5 shrink-0" />
+        <span className="text-base font-semibold text-[#1A1A1A] tracking-tight">
           CiteOnSight
         </span>
       </header>
 
-      <div className="p-3 flex flex-col gap-3">
+      <div className="p-4 flex flex-col gap-3">
         {status === "loading" && <LoadingSpinner />}
 
         {status === "error" && <ErrorMessage errorType={errorType} />}
@@ -57,7 +57,7 @@ export default function App() {
         {status === "success" && metadata && (
           <>
             <MetadataCard metadata={metadata} />
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="bg-white rounded-lg border border-[#E5E7EB] shadow-sm overflow-hidden">
               <FormatTabs
                 formats={CITATION_FORMATS}
                 selected={selectedFormat}

@@ -1,6 +1,6 @@
 # CiteOnSight
 
-CiteOnSight is a Chrome extension that instantly generates formatted academic citations from any webpage. Open the extension on any article or journal page — it reads the page's metadata automatically and formats the citation in APA, MLA, Chicago, IEEE, or Harvard style in one click.
+CiteOnSight is a Chrome extension that generates formatted academic citations from any webpage. Open the extension on any article or journal page — it reads the page's metadata automatically and formats the citation in APA, MLA, Chicago, IEEE, or Harvard style in one click. For books and pages with missing metadata, a manual entry form lets you type the fields directly.
 
 ## Citation Formats
 
@@ -20,7 +20,10 @@ CiteOnSight supports two ways to create citations:
 - **Websites** — news articles, blog posts, Wikipedia, general web pages
 - **Journal articles** — pages with DOIs or Highwire Press metadata (Nature, PubMed, etc.)
 
-**Manual entry** (planned) — type the fields in directly. Covers source types that can't be auto-extracted reliably, primarily books. Also useful when a page has incomplete or missing metadata.
+**Manual entry** — open the menu (☰) and select Manual Citation. Type the fields directly. Covers three source types:
+- **Websites** — when auto-extraction returns incomplete data
+- **Journal articles** — same fields as auto-extraction, manually entered
+- **Books** — not auto-detectable (no webpage to extract from)
 
 For each source type, the formatter applies the correct per-style rules — author list thresholds (APA lists up to 20; Chicago journal up to 10; et al. rules differ by format and source type), date formatting, title italics, and journal name italics.
 
@@ -48,16 +51,17 @@ CiteOnSight/
 │   ├── src/
 │   │   ├── popup/
 │   │   │   ├── components/     # CitationBox, FormatTabs, MetadataCard,
-│   │   │   │                   #   ErrorMessage, LoadingSpinner
+│   │   │   │                   #   ErrorMessage, LoadingSpinner, ManualEntryForm
 │   │   │   ├── hooks/          # useMetadata — Chrome message passing hook
 │   │   │   ├── services/       # mockCitationService (swapped for real API in Phase 4)
+│   │   │   │                   #   storage — chrome.storage.local wrappers
 │   │   │   ├── App.jsx
 │   │   │   ├── index.jsx
 │   │   │   └── index.css
 │   │   ├── content/            # Content script — runs inside the active tab
 │   │   └── utils/              # extractMetadata — DOM metadata extraction
 │   ├── tests/
-│   │   └── unit/               # 87 tests across all components and utilities
+│   │   └── unit/               # 154 tests across all components and utilities
 │   └── public/
 │       ├── manifest.json       # Chrome Manifest V3
 │       └── popup.html
@@ -99,7 +103,7 @@ FastAPI backend that accepts metadata and returns formatted citations. All forma
 
 React popup that connects metadata extraction to citation display.
 
-**Popup components:**
+**Auto-extraction view:**
 - `MetadataCard` — shows extracted title, author, date, source type badge
 - `FormatTabs` — tab strip for switching between 5 citation styles
 - `CitationBox` — displays formatted citation with:
@@ -110,12 +114,24 @@ React popup that connects metadata extraction to citation display.
 - `ErrorMessage` — three distinct error states: browser page (can't cite `chrome://` URLs), timeout (content script didn't respond), unknown
 - `LoadingSpinner` — shown while the citation is being formatted
 
+**Manual entry view (`ManualEntryForm`):**
+- Accessed via hamburger menu (☰) in the popup header; "My Projects" in the same menu is disabled pending Phase 6
+- Source type selector — Website, Journal Article, Book; switching resets all fields
+- Dynamic author inputs — one input per author, add/remove buttons; accepts any name format
+- Live citation preview — updates as fields are filled; gated on the title field so the preview only appears once there's something to format
+- Field sets per source type:
+  - **Website** — Title, Authors, Date, Access Date (defaults to today if blank), Publisher, URL
+  - **Journal article** — Title, Authors, Journal Name, Date, Volume, Issue, Pages, DOI, URL
+  - **Book** — Title, Authors, Year, Publisher, Publisher Location, Edition (ordinal suffix added automatically: "4" → "4th ed.")
+- Chicago and IEEE book citations use `Location: Publisher, Year` when a publisher location is provided
+- APA, MLA, and Harvard book citations use publisher name only (location not required in current editions)
+- `chrome.storage.local` persistence — view state and all form fields survive popup close/reopen, so users can close the popup to copy a title from the page and reopen with their work intact
+- "Clear Form" button clears all fields and removes the saved state
+
 **Architecture:**
 - `useMetadata` hook sends `GET_METADATA` to the content script via `chrome.tabs.sendMessage` with a 3-second timeout; handles browser pages before attempting message passing
 - `mockCitationService` implements the same async interface as the real backend API — swapping to the real service in Phase 4 is a one-line import change in `App.jsx`
-
-**Not yet built (Phase 3 gap):**
-- Manual entry form — lets users type citation fields directly for books and pages where auto-extraction fails or returns incomplete data. The backend already accepts arbitrary metadata, so this is purely a UI addition.
+- `storage.js` wraps `chrome.storage.local` with a `typeof chrome` guard so the same code runs in tests (jsdom) without mocking the chrome global
 
 ### Phase 4: Connect Extension to Backend — Upcoming
 
@@ -170,8 +186,17 @@ Set up GitHub Actions for both codebases, review coverage across all phases, add
 - [x] ErrorMessage — browser page / timeout / unknown error states
 - [x] `useMetadata` hook with 3-second timeout and stale-result cancellation
 - [x] Mock citation service with identical async interface to real API
-- [x] Component tests — 87 tests
-- [ ] Manual entry form for books and pages with missing or incomplete metadata
+- [x] Hamburger menu (☰) — Manual Citation and My Projects (disabled, Phase 6)
+- [x] ManualEntryForm — Website, Journal Article, Book source types
+- [x] Book citations in all 5 formats (mock service)
+- [x] Dynamic author inputs — add/remove per-author fields
+- [x] Live citation preview gated on title field
+- [x] Access Date field for websites (defaults to today)
+- [x] Publisher Location field for books (Chicago and IEEE: "City: Publisher, Year")
+- [x] Edition ordinal suffix — "4" → "4th ed." automatically
+- [x] `chrome.storage.local` persistence — form state and view survive popup close/reopen
+- [x] "Clear Form" button clears fields and saved state
+- [x] Component tests — 154 tests
 
 ### Phase 4: Connect Extension to Backend
 - [ ] Real API client replacing the mock service

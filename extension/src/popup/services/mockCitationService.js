@@ -248,11 +248,114 @@ function cleanJournalTitle(title, journalName) {
   return title.replace(/ [-–] [^-–]+$/, "").trim() || title;
 }
 
+// --- Ordinal suffix ---
+
+// Convert a plain number to its ordinal form: 1 → "1st", 2 → "2nd", 11 → "11th", 21 → "21st".
+// If the user already typed "3rd" or a word like "Revised", parseInt returns NaN or the same
+// number, and the result is still correct — so this function is safe to call unconditionally.
+function toOrdinal(n) {
+  const num = parseInt(n, 10);
+  if (isNaN(num)) return String(n); // non-numeric input ("Revised") — use as-is
+  const mod100 = num % 100;
+  if (mod100 >= 11 && mod100 <= 13) return `${num}th`; // 11th, 12th, 13th special cases
+  const mod10 = num % 10;
+  if (mod10 === 1) return `${num}st`;
+  if (mod10 === 2) return `${num}nd`;
+  if (mod10 === 3) return `${num}rd`;
+  return `${num}th`;
+}
+
+// --- Book citation formatters ---
+// NOTE: Phase 4 task — add corresponding book formatters to backend/app/services/formatters.py
+// These are used only by ManualEntryForm; auto-extraction never produces type === "book".
+
+function formatApaBook(metadata) {
+  const authorFmt = authorsApa(metadata.author);
+  const author = authorFmt ? `${authorFmt} ` : "";
+  const edition = metadata.edition ? ` (${toOrdinal(metadata.edition)} ed.)` : "";
+  let citation = `${author}(${dateYear(metadata.date)}). *${metadata.title}*${edition}.`;
+  if (metadata.publisher && metadata.publisher !== "Unknown Publisher") {
+    citation += ` ${metadata.publisher}.`;
+  }
+  return citation.trim();
+}
+
+function formatMlaBook(metadata) {
+  const authorFmt = authorsMlaWebsite(metadata.author);
+  const author = authorFmt
+    ? (authorFmt.endsWith(".") ? `${authorFmt} ` : `${authorFmt}. `)
+    : "";
+  let citation = `${author}*${metadata.title}*.`;
+  if (metadata.edition) citation += ` ${toOrdinal(metadata.edition)} ed.,`;
+  if (metadata.publisher && metadata.publisher !== "Unknown Publisher") {
+    citation += ` ${metadata.publisher},`;
+  }
+  citation += ` ${dateYear(metadata.date)}.`;
+  return citation.trim();
+}
+
+function formatChicagoBook(metadata) {
+  const authorFmt = authorsChicagoWebsite(metadata.author);
+  const author = authorFmt
+    ? (authorFmt.endsWith(".") ? `${authorFmt} ` : `${authorFmt}. `)
+    : "";
+  let citation = `${author}*${metadata.title}*.`;
+  if (metadata.edition) citation += ` ${toOrdinal(metadata.edition)} ed.`;
+  // Chicago 17: "City: Publisher, Year" when location is provided
+  const hasPub = metadata.publisher && metadata.publisher !== "Unknown Publisher";
+  if (metadata.publisherLocation) {
+    citation += hasPub
+      ? ` ${metadata.publisherLocation}: ${metadata.publisher},`
+      : ` ${metadata.publisherLocation},`;
+  } else if (hasPub) {
+    citation += ` ${metadata.publisher},`;
+  }
+  citation += ` ${dateYear(metadata.date)}.`;
+  return citation.trim();
+}
+
+function formatIeeeBook(metadata) {
+  const authorFmt = authorsIeee(metadata.author);
+  const author = authorFmt ? `${authorFmt}, ` : "";
+  let citation = `${author}*${metadata.title}*`;
+  if (metadata.edition) {
+    citation += `, ${toOrdinal(metadata.edition)} ed.`;
+  }
+  // IEEE: "City: Publisher, Year" when location is provided
+  const hasPub = metadata.publisher && metadata.publisher !== "Unknown Publisher";
+  if (metadata.publisherLocation) {
+    citation += hasPub
+      ? ` ${metadata.publisherLocation}: ${metadata.publisher},`
+      : ` ${metadata.publisherLocation},`;
+  } else if (hasPub) {
+    citation += ` ${metadata.publisher},`;
+  }
+  citation += ` ${dateYear(metadata.date)}.`;
+  return citation.trim();
+}
+
+function formatHarvardBook(metadata) {
+  const authorFmt = authorsHarvard(metadata.author);
+  const author = authorFmt ? `${authorFmt} ` : "";
+  let citation = `${author}(${dateYear(metadata.date)}) *${metadata.title}*`;
+  if (metadata.edition) {
+    citation += `, ${toOrdinal(metadata.edition)} edn.`;
+  } else {
+    citation += ".";
+  }
+  if (metadata.publisher && metadata.publisher !== "Unknown Publisher") {
+    citation += ` ${metadata.publisher}.`;
+  }
+  return citation.trim();
+}
+
 // --- Citation format functions ---
 
 function formatApa(metadata) {
   const authorFmt = authorsApa(metadata.author);
   const author = authorFmt ? `${authorFmt} ` : "";
+
+  if (metadata.type === "book") return formatApaBook(metadata);
 
   if (metadata.type === "journal_article") {
     const title = cleanJournalTitle(metadata.title, metadata.journalName);
@@ -273,6 +376,7 @@ function formatApa(metadata) {
 }
 
 function formatMla(metadata) {
+  if (metadata.type === "book") return formatMlaBook(metadata);
   const isJournal = metadata.type === "journal_article";
   const authorFmt = isJournal
     ? authorsMlaJournal(metadata.author)
@@ -301,6 +405,7 @@ function formatMla(metadata) {
 }
 
 function formatChicago(metadata) {
+  if (metadata.type === "book") return formatChicagoBook(metadata);
   const isJournal = metadata.type === "journal_article";
   const authorFmt = isJournal
     ? authorsChicagoJournal(metadata.author)
@@ -329,6 +434,7 @@ function formatChicago(metadata) {
 }
 
 function formatIeee(metadata) {
+  if (metadata.type === "book") return formatIeeeBook(metadata);
   const authorFmt = authorsIeee(metadata.author);
   // IEEE: author followed by comma, then title in quotes
   const author = authorFmt ? `${authorFmt}, ` : "";
@@ -349,6 +455,7 @@ function formatIeee(metadata) {
 }
 
 function formatHarvard(metadata) {
+  if (metadata.type === "book") return formatHarvardBook(metadata);
   const authorFmt = authorsHarvard(metadata.author);
   const author = authorFmt ? `${authorFmt} ` : "";
 

@@ -51,7 +51,7 @@ CiteOnSight/
 │   ├── src/
 │   │   ├── popup/
 │   │   │   ├── components/     # CitationBox, FormatTabs, MetadataCard,
-│   │   │   │                   #   ErrorMessage, LoadingSpinner, ManualEntryForm
+│   │   │   │                   #   ErrorMessage, LoadingSpinner, ManualEntryForm, DonateView
 │   │   │   ├── hooks/          # useMetadata — Chrome message passing hook
 │   │   │   ├── services/       # mockCitationService (swapped for real API in Phase 4)
 │   │   │   │                   #   storage — chrome.storage.local wrappers
@@ -61,7 +61,7 @@ CiteOnSight/
 │   │   ├── content/            # Content script — runs inside the active tab
 │   │   └── utils/              # extractMetadata — DOM metadata extraction
 │   ├── tests/
-│   │   └── unit/               # 154 tests across all components and utilities
+│   │   └── unit/               # 161 tests across all components and utilities
 │   └── public/
 │       ├── manifest.json       # Chrome Manifest V3
 │       └── popup.html
@@ -115,7 +115,7 @@ React popup that connects metadata extraction to citation display.
 - `LoadingSpinner` — shown while the citation is being formatted
 
 **Manual entry view (`ManualEntryForm`):**
-- Accessed via hamburger menu (☰) in the popup header; "My Projects" in the same menu is disabled pending Phase 6
+- Accessed via hamburger menu (☰) in the popup header; menu order: Manual Citation, My Projects (disabled, Phase 6), Donate ☕
 - Source type selector — Website, Journal Article, Book; switching resets all fields
 - Dynamic author inputs — one input per author, add/remove buttons; accepts any name format
 - Live citation preview — updates as fields are filled; gated on the title field so the preview only appears once there's something to format
@@ -125,8 +125,11 @@ React popup that connects metadata extraction to citation display.
   - **Book** — Title, Authors, Year, Publisher, Publisher Location, Edition (ordinal suffix added automatically: "4" → "4th ed.")
 - Chicago and IEEE book citations use `Location: Publisher, Year` when a publisher location is provided
 - APA, MLA, and Harvard book citations use publisher name only (location not required in current editions)
-- `chrome.storage.local` persistence — view state and all form fields survive popup close/reopen, so users can close the popup to copy a title from the page and reopen with their work intact
+- `chrome.storage.local` persistence — view state and all form fields survive popup close/reopen, so users can close the popup to copy a title from the page and reopen with their work intact; the Donate view is intentionally not persisted (reopening always returns to auto-extraction)
 - "Clear Form" button clears all fields and removes the saved state
+
+**Donate view (`DonateView`):**
+- Ko-fi link opens in a new tab; visiting and closing the popup returns to auto-extraction on next open
 
 **Architecture:**
 - `useMetadata` hook sends `GET_METADATA` to the content script via `chrome.tabs.sendMessage` with a 3-second timeout; handles browser pages before attempting message passing
@@ -186,7 +189,7 @@ Set up GitHub Actions for both codebases, review coverage across all phases, add
 - [x] ErrorMessage — browser page / timeout / unknown error states
 - [x] `useMetadata` hook with 3-second timeout and stale-result cancellation
 - [x] Mock citation service with identical async interface to real API
-- [x] Hamburger menu (☰) — Manual Citation and My Projects (disabled, Phase 6)
+- [x] Hamburger menu (☰) — Manual Citation, My Projects (disabled, Phase 6), Donate ☕
 - [x] ManualEntryForm — Website, Journal Article, Book source types
 - [x] Book citations in all 5 formats (mock service)
 - [x] Dynamic author inputs — add/remove per-author fields
@@ -196,7 +199,8 @@ Set up GitHub Actions for both codebases, review coverage across all phases, add
 - [x] Edition ordinal suffix — "4" → "4th ed." automatically
 - [x] `chrome.storage.local` persistence — form state and view survive popup close/reopen
 - [x] "Clear Form" button clears fields and saved state
-- [x] Component tests — 154 tests
+- [x] Donate view — Ko-fi link, opens in new tab, not persisted across popup close
+- [x] Component tests — 161 tests
 
 ### Phase 4: Connect Extension to Backend
 - [ ] Real API client replacing the mock service

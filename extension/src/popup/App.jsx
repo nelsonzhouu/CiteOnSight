@@ -8,6 +8,7 @@ import CitationBox from "./components/CitationBox.jsx";
 import LoadingSpinner from "./components/LoadingSpinner.jsx";
 import ErrorMessage from "./components/ErrorMessage.jsx";
 import ManualEntryForm from "./components/ManualEntryForm.jsx";
+import DonateView from "./components/DonateView.jsx";
 
 export default function App() {
   const { metadata, status, errorType } = useMetadata();
@@ -28,9 +29,11 @@ export default function App() {
     });
   }, []);
 
-  // Persist view so the next open restores the same view
+  // Persist view so the next open restores the same view.
+  // Donate is a one-time visit — store "auto" so reopening after visiting donate
+  // returns to auto-extraction rather than the donate page.
   useEffect(() => {
-    saveStorage("view", view);
+    saveStorage("view", view === "donate" ? "auto" : view);
   }, [view]);
 
   // Re-format whenever metadata loads or the user switches formats.
@@ -116,12 +119,20 @@ export default function App() {
               >
                 My Projects
               </button>
+              <button
+                onClick={() => { setMenuOpen(false); setView("donate"); }}
+                className="w-full text-left px-4 py-2 text-sm text-[#1A1A1A] hover:bg-[#F3F4F6] transition-colors"
+              >
+                Donate ☕
+              </button>
             </div>
           )}
         </div>
       </header>
 
-      {view === "manual" ? (
+      {view === "donate" ? (
+        <DonateView onBack={() => setView("auto")} />
+      ) : view === "manual" ? (
         <ManualEntryForm onBack={() => setView("auto")} />
       ) : (
         <div className="p-4 flex flex-col gap-3">

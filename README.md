@@ -1,6 +1,6 @@
 # CiteOnSight
 
-CiteOnSight is a Chrome extension that instantly generates formatted citations from any webpage. Instead of manually copying URLs, publication dates, and author names into a citation generator, CiteOnSight extracts metadata from the page you're already on and formats it for you in one click.
+CiteOnSight is a Chrome extension that instantly generates formatted academic citations from any webpage. Open the extension on any article or journal page — it reads the page's metadata automatically and formats the citation in APA, MLA, Chicago, IEEE, or Harvard style in one click.
 
 ## Citation Formats
 
@@ -12,28 +12,33 @@ CiteOnSight is a Chrome extension that instantly generates formatted citations f
 | IEEE | Current standard | Engineering, computer science |
 | Harvard | Standard author-date (Cite Them Right, 12th ed.) | Sciences, UK universities |
 
-## The Problem
+## What It Does
 
-Academic researchers, students, and writers spend significant time manually building citations — finding the author, publication date, and site name, then formatting them correctly for APA, MLA, Chicago, IEEE, or Harvard style. CiteOnSight eliminates that friction by reading the page's metadata automatically and formatting the citation on demand.
+CiteOnSight supports two ways to create citations:
 
-## Key Features
+**Auto-extraction** — open the extension on any page and it reads the metadata automatically. Detects two source types:
+- **Websites** — news articles, blog posts, Wikipedia, general web pages
+- **Journal articles** — pages with DOIs or Highwire Press metadata (Nature, PubMed, etc.)
 
-- Auto-detect and extract metadata from websites and journal articles
-- Generate citations in APA, MLA, Chicago, IEEE, and Harvard formats
-- Manual entry for books and pages with missing metadata
-- Save citations to organized project folders
-- User accounts with citation history
-- Copy-to-clipboard with one click
+**Manual entry** (planned) — type the fields in directly. Covers source types that can't be auto-extracted reliably, primarily books. Also useful when a page has incomplete or missing metadata.
+
+For each source type, the formatter applies the correct per-style rules — author list thresholds (APA lists up to 20; Chicago journal up to 10; et al. rules differ by format and source type), date formatting, title italics, and journal name italics.
+
+## Current Status
+
+![Status](https://img.shields.io/badge/status-Phase%203%20complete-blue)
+
+Phases 1–3 are complete and tested. The extension popup is fully functional using a local mock citation service. Phase 4 will connect it to the live backend API.
 
 ## Tech Stack
 
 | Layer | Technology |
 |-------|-----------|
-| Extension | React, Vite, Tailwind CSS |
-| Backend API | FastAPI (Python) |
-| Database & Auth | Supabase (PostgreSQL + Auth) |
-| Testing | Vitest (extension), pytest (backend) |
-| CI/CD | GitHub Actions |
+| Extension | React 18, Vite, Tailwind CSS v3 |
+| Backend API | FastAPI (Python 3.12) |
+| Database & Auth | Supabase (PostgreSQL + Auth) — Phase 5 |
+| Testing | Vitest + Testing Library (extension), pytest (backend) |
+| CI/CD | GitHub Actions — Phase 7 |
 
 ## Project Structure
 
@@ -41,115 +46,151 @@ Academic researchers, students, and writers spend significant time manually buil
 CiteOnSight/
 ├── extension/
 │   ├── src/
-│   │   ├── popup/          # React UI rendered in the extension popup
-│   │   ├── content/        # Content scripts — run inside the webpage
-│   │   ├── background/     # Service worker — handles background tasks
-│   │   └── utils/          # Shared helpers (metadata parsing, formatting)
+│   │   ├── popup/
+│   │   │   ├── components/     # CitationBox, FormatTabs, MetadataCard,
+│   │   │   │                   #   ErrorMessage, LoadingSpinner
+│   │   │   ├── hooks/          # useMetadata — Chrome message passing hook
+│   │   │   ├── services/       # mockCitationService (swapped for real API in Phase 4)
+│   │   │   ├── App.jsx
+│   │   │   ├── index.jsx
+│   │   │   └── index.css
+│   │   ├── content/            # Content script — runs inside the active tab
+│   │   └── utils/              # extractMetadata — DOM metadata extraction
 │   ├── tests/
-│   │   ├── unit/           # Unit tests for utilities and components
-│   │   └── integration/    # Integration tests for content script behavior
+│   │   └── unit/               # 87 tests across all components and utilities
 │   └── public/
-│       └── manifest.json   # Chrome extension manifest (Manifest V3)
+│       ├── manifest.json       # Chrome Manifest V3
+│       └── popup.html
 ├── backend/
 │   ├── app/
-│   │   ├── routers/        # FastAPI route handlers
-│   │   ├── models/         # Pydantic request/response models
-│   │   ├── services/       # Business logic (citation formatting)
-│   │   └── middleware/     # Auth validation, rate limiting
-│   └── tests/              # pytest test suite
-└── .github/
-    └── workflows/          # GitHub Actions CI/CD pipelines
+│   │   ├── routers/            # FastAPI route handlers
+│   │   ├── models/             # Pydantic request/response models
+│   │   ├── services/           # Citation formatting logic (5 styles × 2 source types)
+│   │   └── middleware/         # Auth validation, rate limiting (Phase 5)
+│   └── tests/                  # 109 pytest tests for citation formatters
+└── CLAUDE.md                   # Architecture decisions and code conventions
 ```
-
-## Installation
-
-> Installation instructions will be added when the extension reaches a stable release.
 
 ## Development Phases
 
-Each phase follows the same pattern: build the feature, manually verify it works, write tests for it, then commit. Testing is not deferred to the end — each phase ships with its own tests.
+Each phase follows the same pattern: build the feature, manually verify it works, write tests, commit. Tests are not deferred to the end — each phase ships with its own tests.
 
-### Phase 1: Metadata Extraction
-Build the content script that runs inside the active browser tab and extracts structured metadata (title, author, date, URL, publisher) from the page's HTML and meta tags. Auto-detects two source types: **websites** (news articles, blogs, Wikipedia, general web pages) and **journal articles** (pages with DOIs and scholarly metadata). Books are not auto-detected — manual entry in Phase 3 is the right solution since most books are physical and lack a webpage to extract from. Write unit tests for the extraction logic.
+### Phase 1: Metadata Extraction — Complete
 
-### Phase 2: Citation Formatting
-Build the FastAPI backend with endpoints that accept metadata and return properly formatted citations in APA, MLA, Chicago, IEEE, and Harvard styles. Write unit tests for all five formatters.
+Content script that runs inside the active browser tab and extracts structured metadata from the page's HTML, meta tags, Open Graph tags, Highwire Press tags, and JSON-LD structured data.
 
-### Phase 3: Extension UI
-Build the React popup interface — displays extracted metadata, lets users choose a citation format, shows the formatted result, and handles error/loading states. Write component tests for the UI.
+- Extracts title, author, publication date, publisher, canonical URL, and access date
+- Auto-detects **website** vs. **journal article** from DOI presence, `citation_journal_title`, and `ScholarlyArticle` JSON-LD
+- Handles multiple `citation_author` tags (Highwire Press format) joined with ` | ` to avoid ambiguity with "Last, F." name format
+- Normalizes dates from multiple formats (ISO 8601, natural language) to YYYY-MM-DD
+- Graceful fallbacks for all fields when metadata is absent
 
-### Phase 4: Connect Extension to Backend
-Wire the extension to the live backend API. Handle network errors, loading states, and deploy the backend to a hosting provider. Write tests for the API client and error handling paths.
+### Phase 2: Citation Formatting Backend — Complete
 
-### Phase 5: Supabase Integration & Auth
-Add user accounts via Supabase Auth. Users can sign in from the extension popup and their citations are saved to their account. Write tests for auth flows and citation persistence.
+FastAPI backend that accepts metadata and returns formatted citations. All formatting logic lives in the backend so fixes apply everywhere — the extension just sends metadata and receives a string.
 
-### Phase 6: Projects/Folders Feature
-Let users organize saved citations into named project folders (e.g., "Research Paper", "Thesis Chapter 2"). Write tests for folder creation and citation assignment.
+- All five formats implemented for both websites and journal articles (10 formatters total)
+- Per-style author list rules: APA (1–20 all, 21+ truncate to 19 + last), MLA journal (1–2 all, 3+ et al.), MLA website (all, no threshold), Chicago journal (1–10 all, 11+ show 7), Chicago website (1–10 all, 11+ show 10), IEEE (1–6 all, 7+ et al.), Harvard (1–3 all, 4+ et al.)
+- Handles "Last, F." author name format from `citation_author` tags
+- Strips " — Journal Name" suffixes injected into article titles by publishers
+- Input validation and HTML sanitization via Pydantic + bleach
 
-### Phase 7: CI/CD & Test Coverage Review
-This phase is not "write all the tests" — each phase already has tests. Phase 7 is about raising the bar:
-- Set up GitHub Actions to run tests and lint on every push
-- Review coverage across all phases and fill gaps
-- Add integration tests for full end-to-end user flows
-- Reach 80%+ code coverage across both codebases
+### Phase 3: Extension UI — Complete
+
+React popup that connects metadata extraction to citation display.
+
+**Popup components:**
+- `MetadataCard` — shows extracted title, author, date, source type badge
+- `FormatTabs` — tab strip for switching between 5 citation styles
+- `CitationBox` — displays formatted citation with:
+  - Format-specific italics rendered as `<em>` elements (APA: title for websites, journal name for articles; MLA: publisher for websites, journal name for articles; Chicago/IEEE/Harvard: journal name for articles only)
+  - Hanging indent (CSS `text-indent: -2em; padding-left: 2em`)
+  - Rich clipboard copy via `ClipboardItem` — writes both `text/plain` (no markup) and `text/html` (with `<i>` tags and hanging indent) so pasting into Word or Google Docs preserves formatting
+  - `overflow-wrap: break-word` so long URLs don't overflow the 380px popup width
+- `ErrorMessage` — three distinct error states: browser page (can't cite `chrome://` URLs), timeout (content script didn't respond), unknown
+- `LoadingSpinner` — shown while the citation is being formatted
+
+**Architecture:**
+- `useMetadata` hook sends `GET_METADATA` to the content script via `chrome.tabs.sendMessage` with a 3-second timeout; handles browser pages before attempting message passing
+- `mockCitationService` implements the same async interface as the real backend API — swapping to the real service in Phase 4 is a one-line import change in `App.jsx`
+
+**Not yet built (Phase 3 gap):**
+- Manual entry form — lets users type citation fields directly for books and pages where auto-extraction fails or returns incomplete data. The backend already accepts arbitrary metadata, so this is purely a UI addition.
+
+### Phase 4: Connect Extension to Backend — Upcoming
+
+Wire the extension to the live API. Replace the mock citation service with a real HTTP client. Handle network errors and deploy the backend.
+
+### Phase 5: Supabase Integration & Auth — Upcoming
+
+Add user accounts via Supabase Auth. Users sign in from the popup and citations are saved to their history. The Supabase `anon` key lives in the extension (safe — limited by Row Level Security policies); the `service_role` key stays on the backend only.
+
+### Phase 6: Projects/Folders — Upcoming
+
+Let users organize saved citations into named folders (e.g., "Research Paper", "Thesis Chapter 2").
+
+### Phase 7: CI/CD & Coverage Review — Upcoming
+
+Set up GitHub Actions for both codebases, review coverage across all phases, add integration tests for end-to-end flows, reach 80%+ coverage.
 
 ## Features Checklist
 
 ### Phase 1: Metadata Extraction
-- [ ] Extract title from `<title>` and `og:title`
-- [ ] Extract author from meta tags and byline selectors
-- [ ] Extract publication date from meta tags and structured data
-- [ ] Extract publisher/site name
-- [ ] Extract canonical URL
-- [ ] Handle pages with missing metadata gracefully
-- [ ] Unit tests for extraction logic
+- [x] Extract title from `og:title`, `twitter:title`, JSON-LD, `document.title`
+- [x] Extract author from `citation_author`, `author`, `article:author`, JSON-LD, `rel="author"`, `itemprop="author"`
+- [x] Multi-author names joined with ` | ` to preserve "Last, F." format unambiguously
+- [x] Extract publication date with normalization to YYYY-MM-DD
+- [x] Extract publisher from `og:site_name` and JSON-LD
+- [x] Extract canonical URL
+- [x] Auto-detect website vs. journal article (DOI, Highwire tags, ScholarlyArticle JSON-LD)
+- [x] Graceful fallbacks for all fields when metadata is absent
+- [x] Unit tests — 32 tests
 
 ### Phase 2: Citation Formatting
-- [ ] APA format endpoint
-- [ ] MLA format endpoint
-- [ ] Chicago format endpoint
-- [ ] IEEE format endpoint
-- [ ] Harvard format endpoint
-- [ ] Input validation with Pydantic
-- [ ] Error handling for malformed input
-- [ ] Unit tests for all five formats
+- [x] APA 7th edition (website + journal article)
+- [x] MLA 9th edition (website + journal article)
+- [x] Chicago 17th edition (website + journal article)
+- [x] IEEE (website + journal article)
+- [x] Harvard / Cite Them Right (website + journal article)
+- [x] Per-style, per-source-type author list rules
+- [x] "Last, F." name format handled correctly in both JS and Python
+- [x] Publisher-injected title suffixes stripped (e.g., "Title — Nature" → "Title")
+- [x] Input validation with Pydantic, HTML sanitization with bleach
+- [x] Unit tests — 109 tests
 
 ### Phase 3: Extension UI
-- [ ] Popup shell with Tailwind styling
-- [ ] Display extracted metadata fields
-- [ ] Format selector (APA / MLA / Chicago / IEEE / Harvard)
-- [ ] Formatted citation display
-- [ ] Copy-to-clipboard button
-- [ ] Loading state while fetching citation
-- [ ] Error state for failed requests
+- [x] Popup shell with Tailwind CSS — minimal black/white/gray design, fixed 380px width
+- [x] MetadataCard — title, author, date, source type badge
+- [x] FormatTabs — 5-tab format selector with active underline indicator
+- [x] CitationBox — formatted citation with italics, hanging indent, rich copy
+- [x] Clipboard copy: `ClipboardItem` with `text/plain` + `text/html`; falls back to `writeText`
+- [x] Italics preserved when pasting into Word and Google Docs
+- [x] Long URL wrapping (`overflow-wrap: break-word`)
+- [x] LoadingSpinner while citation is formatting
+- [x] ErrorMessage — browser page / timeout / unknown error states
+- [x] `useMetadata` hook with 3-second timeout and stale-result cancellation
+- [x] Mock citation service with identical async interface to real API
+- [x] Component tests — 87 tests
+- [ ] Manual entry form for books and pages with missing or incomplete metadata
 
 ### Phase 4: Connect Extension to Backend
-- [ ] API client utility in extension
-- [ ] Wire format selector to backend endpoint
-- [ ] Handle network errors gracefully
-- [ ] Deploy backend
+- [ ] Real API client replacing the mock service
+- [ ] Error handling for network failures
+- [ ] Backend deployment
 
 ### Phase 5: Supabase Integration & Auth
-- [ ] Sign in / sign up flow in popup
-- [ ] JWT passed with citation requests
-- [ ] Save citation to user's history
+- [ ] Sign-in / sign-up flow in popup
+- [ ] JWT sent with citation requests
+- [ ] Save citations to user history
 - [ ] View saved citations
 
-### Phase 6: Projects/Folders Feature
+### Phase 6: Projects/Folders
 - [ ] Create and name project folders
 - [ ] Assign citations to a folder on save
 - [ ] Browse citations by folder
 
 ### Phase 7: Testing & CI/CD
-- [ ] Full unit test coverage for extraction utils
-- [ ] Full unit test coverage for citation formatters
-- [ ] Integration tests for API endpoints
 - [ ] GitHub Actions workflow for extension
 - [ ] GitHub Actions workflow for backend
-
-## Current Status
-
-![Status](https://img.shields.io/badge/status-in%20development-yellow)
-
-Phase 1 in progress.
+- [ ] Integration tests for full user flows
+- [ ] 80%+ code coverage across both codebases

@@ -119,9 +119,11 @@ function extractTitle(jsonLdList) {
 function extractAuthor(jsonLdList) {
   // Try multiple selectors since sites structure metadata differently
 
-  // Highwire tags support multiple citation_author elements for co-authorship
+  // Highwire tags support multiple citation_author elements for co-authorship.
+  // Use " | " not ", " — citation_author names are in "Last, F." format and ","
+  // would be ambiguous with the comma inside each individual name.
   const citationAuthors = getAllMeta("citation_author");
-  if (citationAuthors.length > 0) return citationAuthors.join(", ");
+  if (citationAuthors.length > 0) return citationAuthors.join(" | ");
 
   const authorMeta = getMeta("author");
   if (authorMeta) return authorMeta;
@@ -137,19 +139,19 @@ function extractAuthor(jsonLdList) {
     const names = authors
       .map((a) => (typeof a === "string" ? a : a?.name))
       .filter(Boolean);
-    if (names.length > 0) return names.join(", ");
+    if (names.length > 0) return names.join(" | ");
   }
 
   // Some sites set the URL as the link's text content rather than the author name — skip those
   const relAuthorEls = Array.from(document.querySelectorAll('[rel="author"]'))
     .map((el) => el.textContent.trim())
     .filter((text) => text && !text.startsWith("http"));
-  if (relAuthorEls.length > 0) return relAuthorEls.join(", ");
+  if (relAuthorEls.length > 0) return relAuthorEls.join(" | ");
 
   const itempropEls = Array.from(document.querySelectorAll('[itemprop="author"]'))
     .map((el) => el.textContent.trim())
     .filter((text) => text && !text.startsWith("http"));
-  if (itempropEls.length > 0) return itempropEls.join(", ");
+  if (itempropEls.length > 0) return itempropEls.join(" | ");
 
   return "Unknown Author";
 }

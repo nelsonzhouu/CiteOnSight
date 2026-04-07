@@ -75,19 +75,41 @@ def _parse_date(date_str: str | None) -> dict:
 
 def _parse_name(full_name: str) -> tuple[str, str]:
     """
-    Split 'Jane Marie Smith' into ('Smith', 'Jane Marie').
-    Assumes Western name order: given names first, family name last.
-    Single-word names are treated as family names.
+    Split a name string into (last, first) components.
+    Handles two common formats:
+      "First Last"      → ('Last', 'First')       — standard Western order
+      "Last, First"     → ('Last', 'First')       — Highwire/citation_author format
+    The comma is the signal: if the first token ends with a comma it's "Last, First".
+    Single-word names are treated as family names with no given name.
     """
     parts = full_name.strip().split()
     if len(parts) == 1:
         return parts[0], ""
+    # "Last, First" format: first token carries the trailing comma
+    if parts[0].endswith(","):
+        last = parts[0].rstrip(",")
+        first = " ".join(parts[1:])
+        return last, first
+    # "First Last" format
     return parts[-1], " ".join(parts[:-1])
 
 
 def _to_initials(first_name: str) -> str:
     """Convert 'Jane Marie' → 'J. M.' for APA author format."""
     return " ".join(f"{p[0]}." for p in first_name.split() if p)
+
+
+def _clean_journal_title(title: str, journal_name: str | None = None) -> str:
+    """
+    Strip trailing ' - Journal Name' suffix that some publishers append to the page title.
+    e.g. 'Nanometre-scale thermometry in a living cell - Nature' → 'Nanometre-scale thermometry in a living cell'
+    Tries the exact journal name first, then falls back to a generic dash-suffix pattern.
+    """
+    if journal_name and title.endswith(f" - {journal_name}"):
+        return title[: -(len(journal_name) + 3)].strip()
+    # Generic: strip any trailing ' - Suffix' (space + dash + space + non-dash text)
+    cleaned = re.sub(r" [-–] [^-–]+$", "", title).strip()
+    return cleaned or title
 
 
 def _doi_url(doi: str) -> str:
@@ -102,9 +124,8 @@ def _doi_url(doi: str) -> str:
 
 def _authors_apa(authors: list[str] | None) -> str | None:
     """
-    APA: Last, F. M. for each author; ampersand before final author.
-    e.g. 'Smith, J., & Jones, B.'
-    Returns None if authors list is empty or missing.
+    APA 7th: Last, F. M. for each author; ampersand before final author.
+    1-20 authors: list all. 21+ authors: first 19, ellipsis, last (no ampersand).
     """
     if not authors:
         return None
@@ -116,12 +137,15 @@ def _authors_apa(authors: list[str] | None) -> str | None:
     formatted = [fmt(a) for a in authors]
     if len(formatted) == 1:
         return formatted[0]
-    return ", ".join(formatted[:-1]) + ", & " + formatted[-1]
+    if len(formatted) <= 20:
+        return ", ".join(formatted[:-1]) + ", & " + formatted[-1]
+    # 21+ authors: first 19, "...", last author — no ampersand per APA 7 spec
+    return ", ".join(formatted[:19]) + ", ... " + formatted[-1]
 
 
 def _authors_mla(authors: list[str] | None) -> str | None:
     """
-    MLA: First author is Last, First. Second is First Last. 3+ → et al.
+    MLA 9th journal: 1-2 authors listed; 3+ → first author et al.
     e.g. 'Smith, Jane, and Bob Jones'
     """
     if not authors:
@@ -140,9 +164,9 @@ def _authors_mla(authors: list[str] | None) -> str | None:
     return f"{first_author}, and {second_author}"
 
 
-def _authors_chicago(authors: list[str] | None) -> str | None:
+def _authors_mla_website(authors: list[str] | None) -> str | None:
     """
-    Chicago: First author is Last, First. Others are First Last. 4+ → et al.
+    MLA 9th website: list all authors, 'and' before last — no et al. threshold.
     e.g. 'Smith, Jane, Bob Jones, and Carol Williams'
     """
     if not authors:
@@ -153,8 +177,68 @@ def _authors_chicago(authors: list[str] | None) -> str | None:
 
     if len(authors) == 1:
         return first_author
-    if len(authors) >= 4:
-        return f"{first_author}, et al."
+
+    rest = []
+    for author in authors[1:]:
+        last, first = _parse_name(author)
+        rest.append(f"{first} {last}" if first else last)
+
+    if len(rest) == 1:
+        return f"{first_author}, and {rest[0]}"
+    return f"{first_author}, " + ", ".join(rest[:-1]) + f", and {rest[-1]}"
+
+
+def _authors_chicago(authors: list[str] | None) -> str | None:
+    """
+    Chicago 17th journal: 1-10 list all; 11+ show first 7 + et al.
+    e.g. 'Smith, Jane, Bob Jones, and Carol Williams'
+    """
+    if not authors:
+        return None
+
+    last0, first0 = _parse_name(authors[0])
+    first_author = f"{last0}, {first0}" if first0 else last0
+
+    if len(authors) == 1:
+        return first_author
+
+    if len(authors) > 10:
+        # Show 7 total: first author + 6 more
+        rest = []
+        for author in authors[1:7]:
+            last, first = _parse_name(author)
+            rest.append(f"{first} {last}" if first else last)
+        return f"{first_author}, " + ", ".join(rest) + ", et al."
+
+    rest = []
+    for author in authors[1:]:
+        last, first = _parse_name(author)
+        rest.append(f"{first} {last}" if first else last)
+
+    if len(rest) == 1:
+        return f"{first_author}, and {rest[0]}"
+    return f"{first_author}, " + ", ".join(rest[:-1]) + f", and {rest[-1]}"
+
+
+def _authors_chicago_website(authors: list[str] | None) -> str | None:
+    """
+    Chicago 17th website: 1-10 list all; 11+ show first 10 + et al.
+    """
+    if not authors:
+        return None
+
+    last0, first0 = _parse_name(authors[0])
+    first_author = f"{last0}, {first0}" if first0 else last0
+
+    if len(authors) == 1:
+        return first_author
+
+    if len(authors) > 10:
+        rest = []
+        for author in authors[1:10]:
+            last, first = _parse_name(author)
+            rest.append(f"{first} {last}" if first else last)
+        return f"{first_author}, " + ", ".join(rest) + ", et al."
 
     rest = []
     for author in authors[1:]:
@@ -298,11 +382,12 @@ def format_apa_journal(req: CitationRequest) -> str:
     """
     authors = _authors_apa(req.authors)
     year = _date_apa_year(req.date)
+    title = _clean_journal_title(req.title, req.journal_name)
 
     if authors:
-        base = f"{authors} {year}. {req.title}."
+        base = f"{authors} {year}. {title}."
     else:
-        base = f"{req.title}. {year}."
+        base = f"{title}. {year}."
 
     # Build journal reference: Name, Volume(Issue), pages
     journal_parts = []
@@ -333,7 +418,7 @@ def format_mla_website(req: CitationRequest) -> str:
       Last, First. "Title." Publisher, Day Mon. Year, URL.
     Publisher, date, and URL are comma-separated in one location element.
     """
-    authors = _authors_mla(req.authors)
+    authors = _authors_mla_website(req.authors)
     date = _date_mla(req.date)
 
     parts = []
@@ -364,12 +449,14 @@ def format_mla_journal(req: CitationRequest) -> str:
     """
     authors = _authors_mla(req.authors)
     d = _parse_date(req.date)
+    title = _clean_journal_title(req.title, req.journal_name)
 
     parts = []
     if authors:
-        parts.append(f"{authors}.")
+        # "et al." already ends with a period — don't add a second one
+        parts.append(authors if authors.endswith(".") else f"{authors}.")
 
-    parts.append(f'"{req.title}."')
+    parts.append(f'"{title}."')
 
     journal_parts = []
     if req.journal_name:
@@ -398,12 +485,13 @@ def format_chicago_website(req: CitationRequest) -> str:
       Last, First. "Title." Publisher. Month Day, Year. URL (accessed Month Day, Year).
     Access date is appended in parentheses after the URL when available.
     """
-    authors = _authors_chicago(req.authors)
+    authors = _authors_chicago_website(req.authors)
     date = _date_chicago(req.date)
 
     parts = []
     if authors:
-        parts.append(f"{authors}.")
+        # "et al." already ends with a period — don't add a second one
+        parts.append(authors if authors.endswith(".") else f"{authors}.")
 
     parts.append(f'"{req.title}."')
 
@@ -431,12 +519,14 @@ def format_chicago_journal(req: CitationRequest) -> str:
     authors = _authors_chicago(req.authors)
     d = _parse_date(req.date)
     year_str = f"({d['year']})" if d["year"] else ""
+    title = _clean_journal_title(req.title, req.journal_name)
 
     parts = []
     if authors:
-        parts.append(f"{authors}.")
+        # "et al." already ends with a period — don't add a second one
+        parts.append(authors if authors.endswith(".") else f"{authors}.")
 
-    parts.append(f'"{req.title}."')
+    parts.append(f'"{title}."')
 
     # Chicago journal info format: Name Volume, no. Issue (Year): pages
     if req.journal_name:
@@ -504,11 +594,12 @@ def format_ieee_journal(req: CitationRequest) -> str:
     """
     authors = _authors_ieee(req.authors)
     d = _parse_date(req.date)
+    title = _clean_journal_title(req.title, req.journal_name)
 
     lead = "[1]"
     if authors:
         lead += f" {authors},"
-    lead += f' "{req.title},"'
+    lead += f' "{title},"'
 
     parts = [lead]
 
@@ -593,9 +684,10 @@ def format_harvard_journal(req: CitationRequest) -> str:
     authors = _authors_harvard(req.authors)
     d = _parse_date(req.date)
     year_str = f"({d['year']})" if d["year"] else "(n.d.)"
+    title = _clean_journal_title(req.title, req.journal_name)
 
     lead = f"{authors} {year_str}," if authors else f"{year_str},"
-    parts = [lead, f"'{req.title}',"]
+    parts = [lead, f"'{title}',"]
 
     journal_parts = []
     if req.journal_name:

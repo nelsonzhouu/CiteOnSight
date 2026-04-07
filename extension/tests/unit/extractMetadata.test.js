@@ -113,12 +113,20 @@ describe("author extraction", () => {
     expect(result.author).toBe("Jane Smith");
   });
 
-  it("joins multiple citation_author tags into a comma-separated string", () => {
+  it("joins multiple citation_author tags with ' | ' separator", () => {
+    // " | " avoids ambiguity with "Last, F." format names that contain commas
     addMeta("citation_author", "Jane Smith");
     addMeta("citation_author", "Bob Jones");
     addMeta("citation_author", "Alice Chen");
     const result = extractMetadata();
-    expect(result.author).toBe("Jane Smith, Bob Jones, Alice Chen");
+    expect(result.author).toBe("Jane Smith | Bob Jones | Alice Chen");
+  });
+
+  it("joins citation_author tags in 'Last, F.' format without mangling names", () => {
+    addMeta("citation_author", "Maurer, P. C.");
+    addMeta("citation_author", "Smith, J.");
+    const result = extractMetadata();
+    expect(result.author).toBe("Maurer, P. C. | Smith, J.");
   });
 
   it("extracts author array from JSON-LD", () => {
@@ -127,7 +135,7 @@ describe("author extraction", () => {
       author: [{ name: "Jane Smith" }, { name: "Bob Jones" }],
     });
     const result = extractMetadata();
-    expect(result.author).toBe("Jane Smith, Bob Jones");
+    expect(result.author).toBe("Jane Smith | Bob Jones");
   });
 
   it("extracts a plain string author from JSON-LD", () => {

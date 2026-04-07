@@ -35,14 +35,16 @@ describe("FormatTabs", () => {
   it("applies active styles to the selected tab", () => {
     render(<FormatTabs formats={FORMATS} selected="MLA" onChange={() => {}} />);
     const mlaButton = screen.getByText("MLA");
-    // Active tab should have text-accent class (teal color)
-    expect(mlaButton.className).toContain("text-accent");
+    // Active tab uses black underline in the minimal design system
+    expect(mlaButton.className).toContain("border-b-2");
+    expect(mlaButton.className).toContain("font-semibold");
   });
 
   it("applies inactive styles to non-selected tabs", () => {
     render(<FormatTabs formats={FORMATS} selected="APA" onChange={() => {}} />);
     const mlaButton = screen.getByText("MLA");
-    // Inactive tabs use the design-system gray; active tabs use text-accent
-    expect(mlaButton.className).not.toContain("text-accent");
+    // Inactive tabs have no underline
+    expect(mlaButton.className).not.toContain("border-b-2");
+    expect(mlaButton.className).toContain("font-medium");
   });
 });

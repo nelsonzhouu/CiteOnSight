@@ -11,9 +11,12 @@ from app.services.formatters import (
     _to_initials,
     _authors_apa,
     _authors_mla,
+    _authors_mla_website,
     _authors_chicago,
+    _authors_chicago_website,
     _authors_ieee,
     _authors_harvard,
+    _clean_journal_title,
     format_apa_website,
     format_apa_journal,
     format_mla_website,
@@ -78,6 +81,16 @@ class TestParseName:
     def test_whitespace_trimmed(self):
         assert _parse_name("  Jane Smith  ") == ("Smith", "Jane")
 
+    def test_last_comma_first_initial(self):
+        # "Last, F." format used by Highwire Press / citation_author tags
+        assert _parse_name("Maurer, P. C.") == ("Maurer", "P. C.")
+
+    def test_last_comma_first_full(self):
+        assert _parse_name("Smith, Jane") == ("Smith", "Jane")
+
+    def test_last_comma_first_multiple_initials(self):
+        assert _parse_name("Jones, A. B. C.") == ("Jones", "A. B. C.")
+
 
 class TestToInitials:
     def test_single_first_name(self):
@@ -108,6 +121,23 @@ class TestAuthorsApa:
         result = _authors_apa(["Jane Smith", "Bob Jones", "Carol Williams"])
         assert result == "Smith, J., Jones, B., & Williams, C."
 
+    def test_twenty_authors_listed_fully(self):
+        authors = [f"Author{i} Last{i}" for i in range(20)]
+        result = _authors_apa(authors)
+        assert "& Last19" in result
+        assert "..." not in result
+
+    def test_twentyone_or_more_truncates(self):
+        # APA 7: first 19, "...", last — no ampersand
+        authors = [f"Author{i} Last{i}" for i in range(21)]
+        result = _authors_apa(authors)
+        assert "..." in result
+        assert "Last20" in result   # last author shown
+        assert "& " not in result   # no ampersand before last
+        # Exactly 19 listed before the ellipsis
+        assert "Last18," in result
+        assert "Last19," not in result  # 20th skipped
+
 
 class TestAuthorsMla:
     def test_single_author(self):
@@ -125,6 +155,23 @@ class TestAuthorsMla:
         assert _authors_mla(None) is None
 
 
+class TestAuthorsMlaWebsite:
+    def test_single_author(self):
+        assert _authors_mla_website(["Jane Smith"]) == "Smith, Jane"
+
+    def test_two_authors(self):
+        result = _authors_mla_website(["Jane Smith", "Bob Jones"])
+        assert result == "Smith, Jane, and Bob Jones"
+
+    def test_three_authors_all_listed(self):
+        # Website: no et al. threshold — list all
+        result = _authors_mla_website(["Jane Smith", "Bob Jones", "Carol Williams"])
+        assert result == "Smith, Jane, Bob Jones, and Carol Williams"
+
+    def test_none_returns_none(self):
+        assert _authors_mla_website(None) is None
+
+
 class TestAuthorsChicago:
     def test_single_author(self):
         assert _authors_chicago(["Jane Smith"]) == "Smith, Jane"
@@ -137,12 +184,68 @@ class TestAuthorsChicago:
         result = _authors_chicago(["Jane Smith", "Bob Jones", "Carol Williams"])
         assert result == "Smith, Jane, Bob Jones, and Carol Williams"
 
-    def test_four_or_more_uses_et_al(self):
+    def test_four_authors_listed_fully(self):
+        # Threshold is 11+, so 4 authors should all be listed
         result = _authors_chicago(["A Smith", "B Jones", "C Williams", "D Brown"])
-        assert result == "Smith, A, et al."
+        assert result == "Smith, A, B Jones, C Williams, and D Brown"
+
+    def test_ten_authors_listed_fully(self):
+        authors = [f"Author{i} Last{i}" for i in range(10)]
+        result = _authors_chicago(authors)
+        assert "et al." not in result
+        assert "Last9" in result
+
+    def test_eleven_or_more_shows_seven(self):
+        authors = [f"Author{i} Last{i}" for i in range(11)]
+        result = _authors_chicago(authors)
+        assert "et al." in result
+        # First author + 6 more = 7 total shown
+        assert "Last6" in result
+        assert "Last7" not in result
 
     def test_none_returns_none(self):
         assert _authors_chicago(None) is None
+
+
+class TestAuthorsChicagoWebsite:
+    def test_single_author(self):
+        assert _authors_chicago_website(["Jane Smith"]) == "Smith, Jane"
+
+    def test_ten_authors_listed_fully(self):
+        authors = [f"Author{i} Last{i}" for i in range(10)]
+        result = _authors_chicago_website(authors)
+        assert "et al." not in result
+        assert "Last9" in result
+
+    def test_eleven_or_more_shows_ten(self):
+        authors = [f"Author{i} Last{i}" for i in range(11)]
+        result = _authors_chicago_website(authors)
+        assert "et al." in result
+        # First author + 9 more = 10 total shown
+        assert "Last9" in result
+        assert "Last10" not in result
+
+    def test_none_returns_none(self):
+        assert _authors_chicago_website(None) is None
+
+
+class TestCleanJournalTitle:
+    def test_strips_exact_journal_suffix(self):
+        result = _clean_journal_title("Thermometry in a Cell - Nature", "Nature")
+        assert result == "Thermometry in a Cell"
+
+    def test_strips_generic_dash_suffix(self):
+        result = _clean_journal_title("Some Study - PLOS ONE", None)
+        assert result == "Some Study"
+
+    def test_no_suffix_unchanged(self):
+        result = _clean_journal_title("Attention Is All You Need", "NeurIPS")
+        assert result == "Attention Is All You Need"
+
+    def test_empty_title_unchanged(self):
+        # Should not crash on edge cases
+        result = _clean_journal_title("", "Nature")
+        assert result == ""
 
 
 class TestApaWebsite:
@@ -265,6 +368,17 @@ class TestApaJournal:
         assert "https://doi.org/https://" not in result
         assert "https://doi.org/10.1234/test" in result
 
+    def test_title_suffix_stripped(self):
+        req = make_request(
+            format="APA",
+            source_type="journal_article",
+            title="Thermometry in a Cell - Nature",
+            journal_name="Nature",
+        )
+        result = format_apa_journal(req)
+        assert "Thermometry in a Cell - Nature" not in result
+        assert "Thermometry in a Cell." in result
+
 
 class TestMlaWebsite:
     def test_complete(self):
@@ -323,6 +437,16 @@ class TestMlaJournal:
         result = format_mla_journal(req)
         assert result.startswith('"Test Title."')
 
+    def test_et_al_no_double_period(self):
+        req = make_request(
+            format="MLA",
+            source_type="journal_article",
+            authors=["Jane Smith", "Bob Jones", "Carol Williams"],
+        )
+        result = format_mla_journal(req)
+        assert "et al.." not in result
+        assert "et al." in result
+
 
 class TestChicagoWebsite:
     def test_complete(self):
@@ -375,6 +499,21 @@ class TestChicagoWebsite:
         result = format_chicago_website(req)
         assert "Smith, Jane, Bob Jones, and Carol Williams" in result
 
+    def test_eleven_website_authors_shows_ten_et_al(self):
+        # Website uses _authors_chicago_website (11+ threshold, shows 10)
+        authors = [f"Author{i} Last{i}" for i in range(11)]
+        req = make_request(format="Chicago", source_type="website", authors=authors)
+        result = format_chicago_website(req)
+        assert "et al." in result
+        assert "Last9" in result
+        assert "Last10" not in result
+
+    def test_et_al_no_double_period(self):
+        authors = [f"Author{i} Last{i}" for i in range(11)]
+        req = make_request(format="Chicago", source_type="website", authors=authors)
+        result = format_chicago_website(req)
+        assert "et al.." not in result
+
 
 class TestChicagoJournal:
     def test_complete(self):
@@ -400,6 +539,23 @@ class TestChicagoJournal:
         req = make_request(format="Chicago", source_type="journal_article")
         result = format_chicago_journal(req)
         assert result.startswith('"Test Title."')
+
+    def test_et_al_no_double_period(self):
+        authors = [f"Author{i} Last{i}" for i in range(11)]
+        req = make_request(format="Chicago", source_type="journal_article", authors=authors)
+        result = format_chicago_journal(req)
+        assert "et al.." not in result
+
+    def test_last_comma_first_format_parsed_correctly(self):
+        # "Last, F." format from citation_author tags must not reverse initials
+        req = make_request(
+            format="Chicago",
+            source_type="journal_article",
+            authors=["Maurer, P. C.", "Smith, J."],
+        )
+        result = format_chicago_journal(req)
+        assert "Maurer, P. C." in result
+        assert "C., P." not in result
 
 
 class TestAuthorsIeee:

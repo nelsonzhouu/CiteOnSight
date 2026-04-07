@@ -138,19 +138,19 @@ React popup that connects metadata extraction to citation display.
 
 ### Phase 4: Connect Extension to Backend — Upcoming
 
-Wire the extension to the live API. Replace the mock citation service with a real HTTP client. Handle network errors and deploy the backend.
+Replace the mock citation service with a real HTTP client pointed at the FastAPI backend running on localhost. Test the full request/response cycle locally before any deployment. Handle network errors and timeouts in the extension.
 
 ### Phase 5: Supabase Integration & Auth — Upcoming
 
-Add user accounts via Supabase Auth. Users sign in from the popup and citations are saved to their history. The Supabase `anon` key lives in the extension (safe — limited by Row Level Security policies); the `service_role` key stays on the backend only.
+Add user accounts via Google OAuth through Supabase Auth. Users sign in from the popup and citations are saved to their history with cross-device sync. The Supabase `anon` key lives in the extension (safe — limited by Row Level Security policies); the `service_role` key stays on the backend only.
 
 ### Phase 6: Projects/Folders — Upcoming
 
 Let users organize saved citations into named folders (e.g., "Research Paper", "Thesis Chapter 2").
 
-### Phase 7: CI/CD & Coverage Review — Upcoming
+### Phase 7: Deployment, CI/CD & Final Polish — Upcoming
 
-Set up GitHub Actions for both codebases, review coverage across all phases, add integration tests for end-to-end flows, reach 80%+ coverage.
+Deploy the backend to Render or Railway, set up GitHub Actions for automated testing and deployment, update the extension to use the production API URL, run final end-to-end testing, and publish to the Chrome Web Store.
 
 ## Features Checklist
 
@@ -204,8 +204,8 @@ Set up GitHub Actions for both codebases, review coverage across all phases, add
 
 ### Phase 4: Connect Extension to Backend
 - [ ] Real API client replacing the mock service
-- [ ] Error handling for network failures
-- [ ] Backend deployment
+- [ ] End-to-end local testing (extension + backend on localhost)
+- [ ] Error handling for network failures and timeouts
 
 ### Phase 5: Supabase Integration & Auth
 - [ ] Sign-in / sign-up flow in popup
@@ -218,8 +218,10 @@ Set up GitHub Actions for both codebases, review coverage across all phases, add
 - [ ] Assign citations to a folder on save
 - [ ] Browse citations by folder
 
-### Phase 7: Testing & CI/CD
-- [ ] GitHub Actions workflow for extension
-- [ ] GitHub Actions workflow for backend
-- [ ] Integration tests for full user flows
-- [ ] 80%+ code coverage across both codebases
+### Phase 7: Deployment, CI/CD & Final Polish
+- [ ] Deploy backend to Render or Railway
+- [ ] Update extension to use production API URL
+- [ ] GitHub Actions workflow for extension (automated tests on push)
+- [ ] GitHub Actions workflow for backend (automated tests + deployment)
+- [ ] Final end-to-end testing against production
+- [ ] Publish to Chrome Web Store

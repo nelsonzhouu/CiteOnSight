@@ -256,8 +256,8 @@ function formatApa(metadata) {
 
   if (metadata.type === "journal_article") {
     const title = cleanJournalTitle(metadata.title, metadata.journalName);
-    const journal = metadata.journalName ? ` ${metadata.journalName}` : "";
-    // APA: journal name only (no italics in plain text), volume(issue)
+    // APA: journal name italicized; volume NOT italicized
+    const journal = metadata.journalName ? ` *${metadata.journalName}*` : "";
     const vol = metadata.volume ? `, ${metadata.volume}` : "";
     const issue = metadata.issue ? `(${metadata.issue})` : "";
     const pages = metadata.pages ? `, ${metadata.pages}` : "";
@@ -267,8 +267,9 @@ function formatApa(metadata) {
     return `${author}(${dateYear(metadata.date)}). ${title}.${journal}${vol}${issue}${pages}.${doi}`.trim();
   }
 
+  // APA website: title italicized
   const pub = metadata.publisher !== "Unknown Publisher" ? ` ${metadata.publisher}.` : "";
-  return `${author}(${dateApaWebsite(metadata.date)}). ${metadata.title}.${pub} ${metadata.url}`.trim();
+  return `${author}(${dateApaWebsite(metadata.date)}). *${metadata.title}*.${pub} ${metadata.url}`.trim();
 }
 
 function formatMla(metadata) {
@@ -283,7 +284,8 @@ function formatMla(metadata) {
 
   if (isJournal) {
     const title = cleanJournalTitle(metadata.title, metadata.journalName);
-    const journal = metadata.journalName ? ` ${metadata.journalName},` : "";
+    // MLA journal: journal name italicized
+    const journal = metadata.journalName ? ` *${metadata.journalName}*,` : "";
     const vol = metadata.volume ? ` vol. ${metadata.volume},` : "";
     const issue = metadata.issue ? ` no. ${metadata.issue},` : "";
     const pages = metadata.pages ? ` pp. ${metadata.pages},` : "";
@@ -291,7 +293,8 @@ function formatMla(metadata) {
     return `${author}"${title}."${journal}${vol}${issue} ${dateYear(metadata.date)},${pages}${doi}`.trim();
   }
 
-  const pub = metadata.publisher !== "Unknown Publisher" ? ` ${metadata.publisher},` : "";
+  // MLA website: publisher italicized (title stays in quotes)
+  const pub = metadata.publisher !== "Unknown Publisher" ? ` *${metadata.publisher}*,` : "";
   const date = dateMla(metadata.date);
   const dateStr = date ? ` ${date},` : "";
   return `${author}"${metadata.title}."${pub}${dateStr} ${metadata.url}.`.trim();
@@ -309,7 +312,8 @@ function formatChicago(metadata) {
 
   if (isJournal) {
     const title = cleanJournalTitle(metadata.title, metadata.journalName);
-    const journal = metadata.journalName ? ` ${metadata.journalName}` : "";
+    // Chicago journal: journal name italicized
+    const journal = metadata.journalName ? ` *${metadata.journalName}*` : "";
     const vol = metadata.volume ? ` ${metadata.volume}` : "";
     const issue = metadata.issue ? `, no. ${metadata.issue}` : "";
     const year = `(${dateYear(metadata.date)})`;
@@ -318,6 +322,7 @@ function formatChicago(metadata) {
     return `${author}"${title}."${journal}${vol}${issue} ${year}${pages}${doi}`.trim();
   }
 
+  // Chicago website: no italics
   const pub = metadata.publisher !== "Unknown Publisher" ? ` ${metadata.publisher}.` : "";
   const accessed = metadata.accessDate ? ` (accessed ${dateChicago(metadata.accessDate)})` : "";
   return `${author}"${metadata.title}."${pub} ${dateChicago(metadata.date)}. ${metadata.url}${accessed}.`.trim();
@@ -330,13 +335,15 @@ function formatIeee(metadata) {
 
   if (metadata.type === "journal_article") {
     const title = cleanJournalTitle(metadata.title, metadata.journalName);
-    const journal = metadata.journalName ? ` ${metadata.journalName},` : "";
+    // IEEE journal: journal name italicized
+    const journal = metadata.journalName ? ` *${metadata.journalName}*,` : "";
     const vol = metadata.volume ? ` vol. ${metadata.volume},` : "";
     const issue = metadata.issue ? ` no. ${metadata.issue},` : "";
     const pages = metadata.pages ? ` pp. ${metadata.pages},` : "";
     return `${author}"${title},"${journal}${vol}${issue}${pages} ${dateYear(metadata.date)}.`.trim();
   }
 
+  // IEEE website: no italics
   const pub = metadata.publisher !== "Unknown Publisher" ? ` ${metadata.publisher},` : "";
   return `${author}"${metadata.title},"${pub} ${dateChicago(metadata.date)}. [Online]. Available: ${metadata.url}`.trim();
 }
@@ -347,10 +354,11 @@ function formatHarvard(metadata) {
 
   if (metadata.type === "journal_article") {
     const title = cleanJournalTitle(metadata.title, metadata.journalName);
-    // Harvard journal: Nature, 500(7460) format — no vol./no. prefixes
+    // Harvard journal: journal name italicized; volume/issue NOT italicized
+    // Format: *Nature*, 500(7460) — not *Nature*, *500*(7460)
     let journalRef = "";
     if (metadata.journalName) {
-      journalRef = ` ${metadata.journalName}`;
+      journalRef = ` *${metadata.journalName}*`;
       if (metadata.volume) {
         journalRef += `, ${metadata.volume}`;
         if (metadata.issue) journalRef += `(${metadata.issue})`;
@@ -361,6 +369,7 @@ function formatHarvard(metadata) {
     return `${author}(${dateYear(metadata.date)}), '${title}',${journalRef}${pages}`.trim();
   }
 
+  // Harvard website: no italics (title in single quotes)
   const pub = metadata.publisher !== "Unknown Publisher" ? ` ${metadata.publisher}.` : "";
   const accessed = metadata.accessDate ? ` (Accessed: ${dateHarvardAccessed(metadata.accessDate)})` : "";
   return `${author}(${dateYear(metadata.date)}), '${metadata.title}',${pub} Available at: ${metadata.url}${accessed}.`.trim();
